@@ -1,0 +1,125 @@
+---
+title: "Linear_Regression_Exercise"
+author: "Xu Yang"
+date: "12/5/2017"
+output: html_document
+---
+
+# Load the states data
+
+```{r eval=TRUE,echo=FALSE,message=FALSE,error=FALSE,warning=FALSE,results='hide'}
+
+states.data <- readRDS("dataSets/states.rds") 
+states.info <- data.frame(attributes(states.data)[c("names", "var.labels")])
+```
+
+# Exercise: least squares regression
+────────────────────────────────────────
+
+Use the /states.rds/ data set. Fit a model predicting energy consumed per capita (energy) from the percentage of residents living in metropolitan areas (metro). Be sure to
+  1. Examine/plot the data before fitting the model
+  2. Print and interpret the model `summary'
+  3. `plot' the model to look for deviations from modeling assumptions
+
+Select one or more additional predictors to add to your model and repeat steps 1-3. Is this model significantly better than the model with /metro/ as the only predictor?
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+states_energy<-subset(states.data, select=pop:college)
+cor(states_energy)
+```
+
+It shows the energy doesn't have any correaltion with other variables.
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod1<- lm(energy ~ metro,data=na.omit(states.data))
+summary(energy.mod1)
+plot(energy.mod1, which = c(1, 2))
+```
+
+This model's estimeate coefficient for 'metro' is -1.6526 which means metro has negative correlation with energy. 
+The Pr value of metro is 0.031 that means metro is a significant variable.
+The R squared is 0.09714 and the Adjusted R-squared is 0.07751.They both are not so high.
+We need improve this model.Let's add pop,area,density to the model.
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod2<- lm(energy ~ metro+pop+area+density+waste+energy+miles+toxic+green+house+senate, data=na.omit(states.data))
+summary(energy.mod2)
+plot(energy.mod2, which = c(1, 2))
+```
+
+From the summary, we can see it seems just toxic and green are significant variables. 
+The R-squared is 0.7885, and Adjusted R-squared is 0.7313, they are both quite higher than energy.mod1's.
+Residuals' range became smaller around 50%.  
+Let's just keep toxic and green.
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod3<-lm(energy ~ metro+toxic+green, data=na.omit(states.data))
+summary(energy.mod3)
+plot(energy.mod3, which = c(1, 2))
+```
+
+The R-squared is down to 0.7644,but Adjusted R-squared is up to 0.7483. This is simpler and better.
+Residulas's has a more distinctive trend to being smaller
+How about remove metro even it is out of exercise target. 
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod4<-lm(energy ~ toxic+green, data=na.omit(states.data))
+summary(energy.mod4)
+plot(energy.mod4, which = c(1, 2))
+```
+
+The R-squared is  0.7627,Adjusted R-squared is 0.7521.
+
+
+# Exercise: interactions and factors
+────────────────────────────────────────
+
+Use the states data set.
+
+  1. Add on to the regression equation that you created in exercise 1 by generating an interaction term and testing the interaction.
+
+  2. Try adding region to the model. Are there significant differences across the four regions?
+
+Make sure R knows region is categorical
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+str(states.data$region)
+states.data$region <- factor(states.data$region)
+```
+
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod5<-lm(energy ~ metro*toxic, data=na.omit(states.data))
+summary(energy.mod5)
+
+energy.mod6<-lm(energy ~ metro*green, data=na.omit(states.data))
+summary(energy.mod6)
+```
+
+For energy.mod5, R-squared is 0.4006, Adjusted R-squeared is 0.3597, Pr for metro:toxic is 0.864
+For energy.mod6, R-squared is 0.6969, Adjusted R-squeared is 0.6762, 
+Pr for metro:green is 0.00036, for metro is 0.00262 which means metro became significant in this model.
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod7<-lm(energy ~ metro*green+toxic, data=na.omit(states.data))
+summary(energy.mod7)
+```
+
+enery.mod7 has highest Adjust R-squared with 0.7644, and it's R-squared is 0.7845,just little bit lower than energy.mod2.
+
+Let's see region
+
+```{r eval=TRUE,echo=TRUE,message=FALSE,error=FALSE,warning=FALSE}
+energy.mod8<-lm(energy ~ region, data=na.omit(states.data))
+summary(energy.mod8)
+anova(energy.mod8)
+
+summary(lm(energy ~ C(region, base=4),
+           data=states.data))
+
+summary(lm(energy ~ C(region, contr.helmert),
+   data=states.data))
+plot(energy.mod8,which=c(1,2))
+```
+
+The summary of energy.mod8 shows that the R-squared is 0.1677, and Adjusted R-squared is 0.111. 
+Juest region N.East is significant. There is no strong linear relationship between energy and region.
